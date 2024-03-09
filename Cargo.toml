@@ -19,3 +19,9 @@ overflow-checks = true
 serde = { version = "1.0", features = ["derive"]}
 near-sdk = "5.0.0"
 near-crypto = "0.21.1"
+borsh = "0.9.1"
+serde_json = "1.0"
+
+[dependencies.getrandom]
+version = "0.2.12"
+features = ["js"]
