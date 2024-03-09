@@ -1,36 +1,27 @@
 use near_sdk::borsh::{self, BorshDeserialize, BorshSerialize};
-use near_sdk::{env, near_bindgen, AccountId, BorshStorageKey};
-use near_sdk::collections::{UnorderedMap, Vector};
-use near_sdk::json_types::U128;
+use near_sdk::{env, near_bindgen, AccountId};
 use near_sdk::serde::{Deserialize, Serialize};
+use near_sdk::json_types::U128;
+use std::collections::HashMap;
 
 #[near_bindgen]
 #[derive(BorshDeserialize, BorshSerialize)]
 pub struct DonationProject {
-    projects: UnorderedMap<String, ProjectMetadata>,
-    donations: UnorderedMap<String, Vector<Donation>>,
+    projects: Vec<ProjectMetadata>,
+    project_index: HashMap<String, usize>, // Maps project_id to index in `projects`
 }
 
 #[derive(BorshSerialize, BorshDeserialize, Serialize, Deserialize, Clone)]
 #[serde(crate = "near_sdk::serde")]
 pub struct ProjectMetadata {
+    project_id: String,
     creator_id: AccountId,
     project_name: String,
     project_description: String,
     target_amount: U128,
     current_amount: U128,
-    ipfs_image: String,
-    ipfs_hash: Vec<String>,
     start_date: u64,
     end_date: u64,
-}
-
-#[derive(BorshSerialize, BorshDeserialize, Serialize, Deserialize, Clone)]
-#[serde(crate = "near_sdk::serde")]
-pub struct Donation {
-    donor_id: AccountId,
-    amount: U128,
-    donation_time: u64,
 }
 
 #[near_bindgen]
@@ -39,26 +30,27 @@ impl DonationProject {
     pub fn new() -> Self {
         assert!(!env::state_exists(), "The contract is already initialized.");
         Self {
-            projects: UnorderedMap::new(b"p".to_vec()),
-            donations: UnorderedMap::new(b"d".to_vec()),
+            projects: Vec::new(),
+            project_index: HashMap::new(),
         }
     }
 
-    pub fn create_project(&mut self, project_id: String, creator_id: AccountId, project_name: String, project_description: String, target_amount: U128, ipfs_image: String, ipfs_hash: Vec<String>, end_date: u64) {
-        let start_date = env::block_timestamp();
+    pub fn create_project(&mut self, project_id: String, creator_id: AccountId, project_name: String, project_description: String, target_amount: U128, start_date: u64, end_date: u64) {
         let project_metadata = ProjectMetadata {
+            project_id: project_id.clone(),
             creator_id,
             project_name,
             project_description,
             target_amount,
             current_amount: U128(0),
-            ipfs_image,
-            ipfs_hash,
             start_date,
             end_date,
         };
-        assert!(self.projects.insert(&project_id, &project_metadata).is_none(), "Project ID already exists");
+        self.projects.push(project_metadata);
+        let project_index = self.projects.len() - 1;
+        self.project_index.insert(project_id, project_index);
     }
+
 
     pub fn create_donation(&mut self, project_id: String, donor_id: AccountId, amount: U128) {
         let mut project = self.projects.get(&project_id).expect("Project not found");
