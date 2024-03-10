@@ -1,8 +1,11 @@
 use near_sdk::borsh::{self, BorshDeserialize, BorshSerialize};
 use near_sdk::{env, near_bindgen, AccountId, Timestamp, PanicOnDefault};
 use near_sdk::json_types::U128;
-use near_sdk::collections::HashMap;
 use near_sdk::serde::{Deserialize, Serialize};
+use std::collections::HashMap;
+
+const ONE_DAY_IN_NANOSECONDS: Timestamp = 24 * 60 * 60 * 1_000_000_000;
+const THIRTY_DAYS_IN_NANOSECONDS: Timestamp = 30 * ONE_DAY_IN_NANOSECONDS;
 
 #[near_bindgen]
 #[derive(BorshDeserialize, BorshSerialize, PanicOnDefault)]
@@ -43,9 +46,11 @@ impl DonationProject {
         }
     }
 
-    pub fn create_project(&mut self, project_name: String, project_description: String, target_amount: U128, ipfs_image: String, ipfs_hash: Vec<String>, end_date: Timestamp) {
+    pub fn create_project(&mut self, project_name: String, project_description: String, target_amount: String, ipfs_image: String, ipfs_hash: Vec<String>) {
+        let target_amount: U128 = target_amount.parse().expect("Invalid target amount");
         let creator_id = env::signer_account_id();
         let start_date = env::block_timestamp();
+        let end_date = start_date + THIRTY_DAYS_IN_NANOSECONDS;
         let project_id = format!("{}_{}_{}", creator_id, start_date, env::block_index());
         let project_metadata = ProjectMetadata {
             creator_id,
@@ -81,9 +86,10 @@ impl DonationProject {
         self.donations.get(&project_id).cloned().unwrap_or_else(Vec::new)
     }
 
-    pub fn get_donations_by_donor_id(&self, donor_id: AccountId) -> Vec<(String, Donation)> {
+    pub fn get_donations_by_donor_id(&self, donor_id: AccountId) -> Vec<(String, String)> {
         self.donations.iter().filter_map(|(project_id, donations)| {
-            donations.iter().find(|donation| donation.donor_id == donor_id).map(|donation| (project_id.clone(), donation.clone()))
+            let project_name = self.projects.get(project_id).map(|p| p.project_name.clone()).unwrap_or_default();
+            donations.iter().find(|donation| donation.donor_id == donor_id).map(|_| (project_id.clone(), project_name))
         }).collect()
     }
 
