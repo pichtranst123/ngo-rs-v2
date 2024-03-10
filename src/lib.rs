@@ -43,8 +43,7 @@ impl DonationProject {
         }
     }
 
-    pub fn create_project(&mut self, project_name: String, project_description: String, target_amount: String, ipfs_image: String, ipfs_hash: Vec<String>, end_date: Timestamp) {
-        let target_amount: U128 = target_amount.parse().expect("Invalid target amount");
+    pub fn create_project(&mut self, project_name: String, project_description: String, target_amount: U128, ipfs_image: String, ipfs_hash: Vec<String>, end_date: Timestamp) {
         let creator_id = env::signer_account_id();
         let start_date = env::block_timestamp();
         let project_id = format!("{}_{}_{}", creator_id, start_date, env::block_index());
