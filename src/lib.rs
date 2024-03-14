@@ -1,5 +1,5 @@
 use near_sdk::borsh::{self, BorshDeserialize, BorshSerialize};
-use near_sdk::{env, near_bindgen, AccountId, Timestamp, PanicOnDefault, Promise};
+use near_sdk::{env, near_bindgen, AccountId, PanicOnDefault, Promise, Timestamp};
 use near_sdk::serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use near_token::NearToken;
@@ -68,23 +68,28 @@ impl DonationProject {
             end_date,
             funds_claimed: false,
         };
-        self.projects.insert(project_name, project_metadata);
+        self.projects.insert(project_name.clone(), project_metadata);
     }
 
     #[payable]
-    pub fn create_donation(&mut self, project_id: String) {
-        let donor_id: AccountId = env::signer_account_id();
-        let donation_amount: NearToken = env::attached_deposit();// Wrap the attached deposit in NearToken
+    pub fn create_donation(&mut self, project_id: String, specified_amount: NearToken) {
+    let donor_id: AccountId = env::signer_account_id();
+    let attached_deposit: NearToken = NearToken::new(env::attached_deposit()); // Wrap the attached deposit in NearToken
 
-        assert!(self.projects.contains_key(&project_id), "Project not found");
+    // Ensure the specified amount matches the attached deposit
+    assert_eq!(specified_amount, attached_deposit, "The specified amount does not match the attached deposit.");
 
-        let donation = Donation {
-            donor_id,
-            amount: donation_amount,
-            donation_time: env::block_timestamp(),
-        };
-        self.donations.entry(project_id).or_insert_with(Vec::new).push(donation);
-    }
+    assert!(self.projects.contains_key(&project_id), "Project not found");
+
+    let donation = Donation {
+        donor_id,
+        amount: specified_amount, // Use the specified amount
+        donation_time: env::block_timestamp(),
+    };
+
+    self.donations.entry(project_id).or_insert_with(Vec::new).push(donation);
+}
+
 
     pub fn claim_funds(&mut self, project_id: String) {
         let project = self.projects.get_mut(&project_id).expect("Project not found");
@@ -95,12 +100,12 @@ impl DonationProject {
         assert!(total_donations <= project.target_amount, "Total donations exceed target amount");
 
         project.funds_claimed = true;
-        Promise::new(project.creator_id.clone()).transfer(total_donations.0); // Assuming NearToken has a field .0 representing the amount
+        Promise::new(project.creator_id.clone()).transfer(total_donations.value()); // Assuming .value() method to get the inner u128 value
     }
 
     pub fn get_total_donations_for_project(&self, project_id: &String) -> NearToken {
         self.donations.get(project_id)
-            .map_or(NearToken(0), |donations| donations.iter().map(|donation| donation.amount.0).sum::<u128>().into())
+            .map_or(NearToken::new(0), |donations| donations.iter().map(|donation| donation.amount.value()).sum::<u128>().into()) // Assuming NearToken::new() and .value()
     }
 
     // Additional functions like getters can be added below
