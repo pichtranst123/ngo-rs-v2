@@ -1,5 +1,5 @@
 use near_sdk::borsh::{self, BorshDeserialize, BorshSerialize};
-use near_sdk::{env, near_bindgen, AccountId, Timestamp, PanicOnDefault, Promise, payable};
+use near_sdk::{env, near_bindgen, AccountId, Timestamp, PanicOnDefault, Promise};
 use near_sdk::serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use near_token::NearToken;
