@@ -1,25 +1,27 @@
-error[E0308]: mismatched types
-  --> src/lib.rs:66:29
+   Compiling ngo-rs v0.1.0 (/home/pich/contract/ngo-rs)
+error[E0609]: no field `0` on type `NearToken`
+  --> src/lib.rs:98:75
    |
-66 |             current_amount: 0,
-   |                             ^ expected `NearToken`, found integer
+98 |         Promise::new(project.creator_id.clone()).transfer(total_donations.0); // Assuming NearToken has a field .0 representing the amount
+   |                                                                           ^ unknown field
 
-error[E0369]: cannot add `NearToken` to `NearToken`
-  --> src/lib.rs:84:59
-   |
-84 |         let potential_new_amount = project.current_amount + donation_amount;
-   |                                    ---------------------- ^ --------------- NearToken
-   |                                    |
-   |                                    NearToken
-
-error[E0308]: mismatched types
-   --> src/lib.rs:103:34
+error[E0423]: expected function, tuple struct or tuple variant, found struct `NearToken`
+   --> src/lib.rs:103:21
     |
-103 |         project.current_amount = 0;
-    |         ----------------------   ^ expected `NearToken`, found integer
-    |         |
-    |         expected due to the type of this binding
+103 |             .map_or(NearToken(0), |donations| donations.iter().map(|donation| donation.amount.0).sum::<u128>().into())
+    |                     ^^^^^^^^^^^^ help: use struct literal syntax instead: `NearToken { inner: val }`
+    |
+   ::: /home/pich/.cargo/registry/src/index.crates.io-6f17d22bba15001f/near-token-0.2.0/src/lib.rs:44:1
+    |
+44  | pub struct NearToken {
+    | -------------------- `NearToken` defined here
 
-Some errors have detailed explanations: E0308, E0369, E0432.
-For more information about an error, try `rustc --explain E0308`.
-error: could not compile `ngo-rs` (lib) due to 4 previous errors
+error[E0609]: no field `0` on type `NearToken`
+   --> src/lib.rs:103:95
+    |
+103 |             .map_or(NearToken(0), |donations| donations.iter().map(|donation| donation.amount.0).sum::<u128>().into())
+    |                                                                                               ^ unknown field
+
+Some errors have detailed explanations: E0423, E0609.
+For more information about an error, try `rustc --explain E0423`.
+error: could not compile `ngo-rs` (lib) due to 3 previous errors
