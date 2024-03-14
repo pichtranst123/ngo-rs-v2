@@ -28,6 +28,7 @@ pub struct ProjectMetadata {
     ipfs_hash: Vec<String>,
     start_date: Timestamp,
     end_date: Timestamp,
+    funds_claimed: bool,
 }
 
 #[derive(BorshSerialize, BorshDeserialize, Serialize, Deserialize, Clone)]
@@ -47,6 +48,7 @@ impl DonationProject {
             donations: HashMap::new(),
         }
     }
+
 
   pub fn create_project(&mut self, project_name: String, project_description: String, target_amount: u128, ipfs_image: String, ipfs_hash: Vec<String>, duration: u8) {
         let creator_id = env::signer_account_id();
