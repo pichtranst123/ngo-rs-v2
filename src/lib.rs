@@ -5,9 +5,6 @@ use std::collections::HashMap;
 use near_token::NearToken;
 
 const ONE_HOUR_IN_NANOSECONDS: Timestamp = 60 * 60 * 1_000_000_000;
-const ONE_DAY_IN_NANOSECONDS: Timestamp = 24 * ONE_HOUR_IN_NANOSECONDS;
-const SEVEN_DAYS_IN_NANOSECONDS: Timestamp = 7 * ONE_DAY_IN_NANOSECONDS;
-const THIRTY_DAYS_IN_NANOSECONDS: Timestamp = 30 * ONE_DAY_IN_NANOSECONDS;
 
 #[near_bindgen]
 #[derive(BorshDeserialize, BorshSerialize, PanicOnDefault)]
@@ -74,39 +71,33 @@ impl DonationProject {
     #[payable]
     pub fn create_donation(&mut self, project_id: String) {
         let donor_id = env::signer_account_id();
-        let donation_amount = env::attached_deposit();
+        let donation_amount = NearToken(env::attached_deposit()); // Wrap the attached deposit in NearToken
 
         assert!(self.projects.contains_key(&project_id), "Project not found");
-        let project = self.projects.get(&project_id).unwrap();
-
-        // Ensure donation does not exceed the project's target amount
-        // This requires tracking total donations per project, which could be done by summing donation amounts from the donations HashMap
-
-        let total_donations_for_project: NearToken = self.donations.get(&project_id)
-            .map_or(0, |donations| donations.iter().map(|donation| donation.amount).sum());
-
-        assert!(total_donations_for_project + donation_amount <= project.target_amount, "Donation exceeds target amount");
 
         let donation = Donation {
             donor_id,
             amount: donation_amount,
             donation_time: env::block_timestamp(),
         };
-        self.donations.entry(project_id.to_string()).or_insert_with(Vec::new).push(donation);
+        self.donations.entry(project_id).or_insert_with(Vec::new).push(donation);
     }
 
     pub fn claim_funds(&mut self, project_id: String) {
-        let project = self.projects.get(&project_id).expect("Project not found");
+        let project = self.projects.get_mut(&project_id).expect("Project not found");
         assert!(!project.funds_claimed, "Funds have already been claimed");
         assert!(env::block_timestamp() > project.end_date, "Project has not ended yet");
 
-        // Calculate total donations for the project to transfer
-        let total_donations_for_project: NearToken = self.donations.get(&project_id)
-            .map_or(0, |donations| donations.iter().map(|donation| donation.amount).sum());
+        let total_donations: NearToken = self.get_total_donations_for_project(&project_id);
+        assert!(total_donations <= project.target_amount, "Total donations exceed target amount");
 
         project.funds_claimed = true;
+        Promise::new(project.creator_id.clone()).transfer(total_donations.0); // Assuming NearToken has a field .0 representing the amount
+    }
 
-        Promise::new(project.creator_id.clone()).transfer(total_donations_for_project);
+    pub fn get_total_donations_for_project(&self, project_id: &String) -> NearToken {
+        self.donations.get(project_id)
+            .map_or(NearToken(0), |donations| donations.iter().map(|donation| donation.amount.0).sum::<u128>().into())
     }
 
     // Additional functions like getters can be added below
