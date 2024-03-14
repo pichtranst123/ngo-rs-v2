@@ -1,27 +1,26 @@
-   Compiling ngo-rs v0.1.0 (/home/pich/contract/ngo-rs)
-error[E0609]: no field `0` on type `NearToken`
-  --> src/lib.rs:98:75
+error[E0599]: no function or associated item named `new` found for struct `NearToken` in the current scope
+  --> src/lib.rs:77:49
    |
-98 |         Promise::new(project.creator_id.clone()).transfer(total_donations.0); // Assuming NearToken has a field .0 representing the amount
-   |                                                                           ^ unknown field
+77 |     let donation_amount: NearToken = NearToken::new(env::attached_deposit()); // Wrap the attached deposit in NearToken
+   |                                                 ^^^ function or associated item not found in `NearToken`
 
-error[E0423]: expected function, tuple struct or tuple variant, found struct `NearToken`
-   --> src/lib.rs:103:21
+error[E0599]: no method named `value` found for struct `NearToken` in the current scope
+   --> src/lib.rs:113:75
     |
-103 |             .map_or(NearToken(0), |donations| donations.iter().map(|donation| donation.amount.0).sum::<u128>().into())
-    |                     ^^^^^^^^^^^^ help: use struct literal syntax instead: `NearToken { inner: val }`
-    |
-   ::: /home/pich/.cargo/registry/src/index.crates.io-6f17d22bba15001f/near-token-0.2.0/src/lib.rs:44:1
-    |
-44  | pub struct NearToken {
-    | -------------------- `NearToken` defined here
+113 |         Promise::new(project.creator_id.clone()).transfer(total_donations.value()); // Assuming .value() method to get the inner u128 value
+    |                                                                           ^^^^^ method not found in `NearToken`
 
-error[E0609]: no field `0` on type `NearToken`
-   --> src/lib.rs:103:95
+error[E0599]: no function or associated item named `new` found for struct `NearToken` in the current scope
+   --> src/lib.rs:118:32
     |
-103 |             .map_or(NearToken(0), |donations| donations.iter().map(|donation| donation.amount.0).sum::<u128>().into())
-    |                                                                                               ^ unknown field
+118 |             .map_or(NearToken::new(0), |donations| donations.iter().map(|donation| donation.amount.value()).sum::<u128>().into()) // Assuming NearToken::new() and .value()
+    |                                ^^^ function or associated item not found in `NearToken`
 
-Some errors have detailed explanations: E0423, E0609.
-For more information about an error, try `rustc --explain E0423`.
-error: could not compile `ngo-rs` (lib) due to 3 previous errors
+error[E0599]: no method named `value` found for struct `NearToken` in the current scope
+   --> src/lib.rs:118:100
+    |
+118 |             .map_or(NearToken::new(0), |donations| donations.iter().map(|donation| donation.amount.value()).sum::<u128>().into()) // Assuming NearToken::new() and .value()
+    |                                                                                                    ^^^^^ method not found in `NearToken`
+
+For more information about this error, try `rustc --explain E0599`.
+error: could not compile `ngo-rs` (lib) due to 4 previous errors
