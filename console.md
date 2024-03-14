@@ -1,71 +1,25 @@
-error: proc-macro derive panicked
- --> src/lib.rs:8:10
-  |
-8 | #[derive(BorshDeserialize, BorshSerialize)]
-  |          ^^^^^^^^^^^^^^^^
-  |
-  = help: message: called `Result::unwrap()` on an `Err` value: Could not find `borsh` in `dependencies` or `dev-dependencies` in `/home/pich/contract/ngo-rs/Cargo.toml`!
-
-error: proc-macro derive panicked
- --> src/lib.rs:8:28
-  |
-8 | #[derive(BorshDeserialize, BorshSerialize)]
-  |                            ^^^^^^^^^^^^^^
-  |
-  = help: message: called `Result::unwrap()` on an `Err` value: Could not find `borsh` in `dependencies` or `dev-dependencies` in `/home/pich/contract/ngo-rs/Cargo.toml`!
-
-error: proc-macro derive panicked
-  --> src/lib.rs:14:10
+warning: use of deprecated function `near_sdk::env::block_index`: Use block_height instead
+  --> src/lib.rs:64:75
    |
-14 | #[derive(BorshSerialize, BorshDeserialize, Serialize, Deserialize, Clone)]
-   |          ^^^^^^^^^^^^^^
+64 |         let project_id = format!("{}_{}_{}", creator_id, start_date, env::block_index());
+   |                                                                           ^^^^^^^^^^^
    |
-   = help: message: called `Result::unwrap()` on an `Err` value: Could not find `borsh` in `dependencies` or `dev-dependencies` in `/home/pich/contract/ngo-rs/Cargo.toml`!
+   = note: `#[warn(deprecated)]` on by default
 
-error: proc-macro derive panicked
-  --> src/lib.rs:14:26
-   |
-14 | #[derive(BorshSerialize, BorshDeserialize, Serialize, Deserialize, Clone)]
-   |                          ^^^^^^^^^^^^^^^^
-   |
-   = help: message: called `Result::unwrap()` on an `Err` value: Could not find `borsh` in `dependencies` or `dev-dependencies` in `/home/pich/contract/ngo-rs/Cargo.toml`!
+error[E0308]: mismatched types
+   --> src/lib.rs:112:59
+    |
+112 |         Promise::new(project.creator_id.clone()).transfer(amount_to_transfer);
+    |                                                  -------- ^^^^^^^^^^^^^^^^^^ expected `NearToken`, found `u128`
+    |                                                  |
+    |                                                  arguments to this method are incorrect
+    |
+note: method defined here
+   --> /home/pich/.cargo/registry/src/index.crates.io-6f17d22bba15001f/near-sdk-5.0.0/src/promise.rs:317:12
+    |
+317 |     pub fn transfer(self, amount: NearToken) -> Self {
+    |            ^^^^^^^^
 
-error: proc-macro derive panicked
-  --> src/lib.rs:28:10
-   |
-28 | #[derive(BorshSerialize, BorshDeserialize, Serialize, Deserialize, Clone)]
-   |          ^^^^^^^^^^^^^^
-   |
-   = help: message: called `Result::unwrap()` on an `Err` value: Could not find `borsh` in `dependencies` or `dev-dependencies` in `/home/pich/contract/ngo-rs/Cargo.toml`!
-
-error: proc-macro derive panicked
-  --> src/lib.rs:28:26
-   |
-28 | #[derive(BorshSerialize, BorshDeserialize, Serialize, Deserialize, Clone)]
-   |                          ^^^^^^^^^^^^^^^^
-   |
-   = help: message: called `Result::unwrap()` on an `Err` value: Could not find `borsh` in `dependencies` or `dev-dependencies` in `/home/pich/contract/ngo-rs/Cargo.toml`!
-
-error[E0432]: unresolved import `near_sdk::collections`
- --> src/lib.rs:3:15
-  |
-3 | use near_sdk::collections::{UnorderedMap, Vector};
-  |               ^^^^^^^^^^^ could not find `collections` in `near_sdk`
-
-warning: unused import: `self`
- --> src/lib.rs:1:23
-  |
-1 | use near_sdk::borsh::{self, BorshDeserialize, BorshSerialize};
-  |                       ^^^^
-  |
-  = note: `#[warn(unused_imports)]` on by default
-
-warning: unused import: `BorshStorageKey`
- --> src/lib.rs:2:46
-  |
-2 | use near_sdk::{env, near_bindgen, AccountId, BorshStorageKey};
-  |                                              ^^^^^^^^^^^^^^^
-
-For more information about this error, try `rustc --explain E0432`.
-warning: `ngo-rs` (lib) generated 2 warnings
-error: could not compile `ngo-rs` (lib) due to 7 previous errors; 2 warnings emitted
+For more information about this error, try `rustc --explain E0308`.
+warning: `ngo-rs` (lib) generated 1 warning
+error: could not compile `ngo-rs` (lib) due to previous error; 1 warning emitted
