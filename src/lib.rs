@@ -5,6 +5,9 @@ use std::collections::HashMap;
 use near_token::NearToken;
 
 const ONE_HOUR_IN_NANOSECONDS: Timestamp = 60 * 60 * 1_000_000_000;
+const ONE_DAY_IN_NANOSECONDS: Timestamp = 24 * ONE_HOUR_IN_NANOSECONDS;
+const SEVEN_DAYS_IN_NANOSECONDS: Timestamp = 7 * ONE_DAY_IN_NANOSECONDS;
+const THIRTY_DAYS_IN_NANOSECONDS: Timestamp = 30 * ONE_DAY_IN_NANOSECONDS;
 
 #[near_bindgen]
 #[derive(BorshDeserialize, BorshSerialize, PanicOnDefault)]
@@ -70,8 +73,8 @@ impl DonationProject {
 
     #[payable]
     pub fn create_donation(&mut self, project_id: String) {
-        let donor_id = env::signer_account_id();
-        let donation_amount = NearToken(env::attached_deposit()); // Wrap the attached deposit in NearToken
+        let donor_id: AccountId = env::signer_account_id();
+        let donation_amount: NearToken = env::attached_deposit();// Wrap the attached deposit in NearToken
 
         assert!(self.projects.contains_key(&project_id), "Project not found");
 
