@@ -74,7 +74,7 @@ impl DonationProject {
 #[payable]
 pub fn create_donation(&mut self, project_id: String) {
     let donor_id: AccountId = env::signer_account_id();
-    let donation_amount: NearToken = NearToken::new(env::attached_deposit()); // Wrap the attached deposit in NearToken
+    let donation_amount: NearToken = NearToken::from_yocto(env::attached_deposit());
 
     // Ensure the project exists
     let project = self.projects.get(&project_id).expect("Project not found");
@@ -110,12 +110,12 @@ pub fn create_donation(&mut self, project_id: String) {
         assert!(total_donations <= project.target_amount, "Total donations exceed target amount");
 
         project.funds_claimed = true;
-        Promise::new(project.creator_id.clone()).transfer(total_donations.value()); // Assuming .value() method to get the inner u128 value
+        Promise::new(project.creator_id.clone()).transfer(total_donations.amount);
     }
 
     pub fn get_total_donations_for_project(&self, project_id: &String) -> NearToken {
         self.donations.get(project_id)
-            .map_or(NearToken::new(0), |donations| donations.iter().map(|donation| donation.amount.value()).sum::<u128>().into()) // Assuming NearToken::new() and .value()
+    .map_or(NearToken::from_yocto(0), |donations| donations.iter().map(|donation| donation.amount.amount).sum::<u128>().into())
     }
 
     // Additional functions like getters can be added below
