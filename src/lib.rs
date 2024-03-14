@@ -71,24 +71,34 @@ impl DonationProject {
         self.projects.insert(project_name.clone(), project_metadata);
     }
 
-    #[payable]
-    pub fn create_donation(&mut self, project_id: String, specified_amount: NearToken) {
+#[payable]
+pub fn create_donation(&mut self, project_id: String) {
     let donor_id: AccountId = env::signer_account_id();
-    let attached_deposit: NearToken = NearToken::new(env::attached_deposit()); // Wrap the attached deposit in NearToken
+    let donation_amount: NearToken = NearToken::new(env::attached_deposit()); // Wrap the attached deposit in NearToken
 
-    // Ensure the specified amount matches the attached deposit
-    assert_eq!(specified_amount, attached_deposit, "The specified amount does not match the attached deposit.");
+    // Ensure the project exists
+    let project = self.projects.get(&project_id).expect("Project not found");
 
-    assert!(self.projects.contains_key(&project_id), "Project not found");
+    // Calculate the total donations received so far for this project
+    let current_total_donations: NearToken = self.get_total_donations_for_project(&project_id);
 
+    // Calculate what the new total would be with the new donation
+    let new_total_donations = current_total_donations + donation_amount;
+
+    // Check if the new total exceeds the project's target amount
+    if new_total_donations > project.target_amount {
+        env::panic_str("Donation exceeds project's target amount");
+    }
+
+    // Proceed with recording the donation
     let donation = Donation {
         donor_id,
-        amount: specified_amount, // Use the specified amount
+        amount: donation_amount,
         donation_time: env::block_timestamp(),
     };
-
     self.donations.entry(project_id).or_insert_with(Vec::new).push(donation);
 }
+
 
 
     pub fn claim_funds(&mut self, project_id: String) {
