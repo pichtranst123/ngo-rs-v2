@@ -81,40 +81,50 @@ impl DonationProject {
         self.projects.insert(project_id, project_metadata);
     }
 
-    pub fn create_donation(&mut self, project_id: String, amount: U128) {
+      pub fn create_donation(&mut self, project_id: String, amount: U128) {
         let donor_id = env::signer_account_id();
         let donation_time = env::block_timestamp();
+
+        // Convert the donation amount from NEAR to yoctoNEAR
+        let amount_yocto = amount.0 * 10u128.pow(24);
+
         let donation = Donation {
             donor_id,
-            amount,
+            amount: U128(amount_yocto), // Store in yoctoNEAR
             donation_time,
         };
+
         let project_metadata = self.projects.get_mut(&project_id).expect("Project not found");
-        project_metadata.current_amount = U128((project_metadata.current_amount.0 + amount.0) as u128);
+
+        // Update the project's current amount in yoctoNEAR
+        project_metadata.current_amount = U128((project_metadata.current_amount.0 + amount_yocto) as u128);
+
         self.donations.entry(project_id).or_insert_with(Vec::new).push(donation);
     }
 
-    pub fn claim_funds(&mut self, project_id: String) {
-        let project = self.projects.get_mut(&project_id).expect("Project not found");
-        let current_time = env::block_timestamp();
-        let caller_id = env::predecessor_account_id();
+pub fn claim_funds(&mut self, project_id: String) {
+    let project = self.projects.get_mut(&project_id).expect("Project not found");
+    let current_time = env::block_timestamp();
+    let caller_id = env::predecessor_account_id();
 
-        if caller_id != project.creator_id {
-            env::panic_str("Only the project creator can claim the funds");
-        }
-        if current_time < project.end_date {
-            env::panic_str("Project has not ended yet");
-        }
-        if project.funds_claimed {
-            env::panic_str("Funds have already been claimed");
-        }
-
-        let amount_to_transfer = project.current_amount.0;
-        project.current_amount = U128(0);
-        project.funds_claimed = true;
-
-        Promise::new(project.creator_id.clone()).transfer(amount_to_transfer);
+    if caller_id != project.creator_id {
+        env::panic_str("Only the project creator can claim the funds");
     }
+    if current_time < project.end_date {
+        env::panic_str("Project has not ended yet");
+    }
+    if project.funds_claimed {
+        env::panic_str("Funds have already been claimed");
+    }
+
+    let amount_to_transfer = project.current_amount.0;
+    project.current_amount = U128(0);
+    project.funds_claimed = true;
+
+    // Assuming NearToken can be constructed from yoctoNEAR directly
+    let amount_to_transfer_in_near_token = NearToken::from_yoctonear(amount_to_transfer);
+    Promise::new(project.creator_id.clone()).transfer(amount_to_transfer_in_near_token);
+}
 
     pub fn get_projects(&self) -> Vec<(String, ProjectMetadata)> {
         self.projects.iter().map(|(id, project)| (id.clone(), project.clone())).collect()
