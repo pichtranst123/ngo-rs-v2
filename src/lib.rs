@@ -50,7 +50,7 @@ impl DonationProject {
     }
 
 
-  pub fn create_project(&mut self, project_name: String, project_description: String, target_amount: u128, ipfs_image: String, ipfs_hash: Vec<String>, duration: u8) {
+ pub fn create_project(&mut self, project_name: String, project_description: String, target_amount: U128, ipfs_image: String, ipfs_hash: Vec<String>, duration: u8) {
         let creator_id = env::signer_account_id();
         let start_date = env::block_timestamp();
         let end_date = match duration {
@@ -61,12 +61,16 @@ impl DonationProject {
             _ => env::panic_str("Invalid duration."),
         };
 
-        let project_id = format!("{}_{}_{}", creator_id, start_date, env::block_index());
+        let project_id = format!("{}{}{}", creator_id, start_date, env::block_height());
+
+        // Convert target_amount from NEAR to yoctoNEAR for internal storage
+        let target_amount_yocto = target_amount.0 * 10u128.pow(24);
+
         let project_metadata = ProjectMetadata {
             creator_id,
             project_name,
             project_description,
-            target_amount,
+            target_amount: target_amount_yocto, // Store in yoctoNEAR
             current_amount: U128(0),
             ipfs_image,
             ipfs_hash,
