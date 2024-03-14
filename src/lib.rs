@@ -22,7 +22,6 @@ pub struct ProjectMetadata {
     project_name: String,
     project_description: String,
     target_amount: NearToken,
-    current_amount: NearToken,
     ipfs_image: String,
     ipfs_hash: Vec<String>,
     start_date: Timestamp,
@@ -63,7 +62,6 @@ impl DonationProject {
             project_name,
             project_description,
             target_amount,
-            current_amount: 0,
             ipfs_image,
             ipfs_hash,
             start_date,
@@ -79,31 +77,36 @@ impl DonationProject {
         let donation_amount = env::attached_deposit();
 
         assert!(self.projects.contains_key(&project_id), "Project not found");
-        let project = self.projects.get_mut(&project_id).unwrap();
+        let project = self.projects.get(&project_id).unwrap();
 
-        let potential_new_amount = project.current_amount + donation_amount;
-        assert!(potential_new_amount <= project.target_amount, "Donation exceeds target amount");
+        // Ensure donation does not exceed the project's target amount
+        // This requires tracking total donations per project, which could be done by summing donation amounts from the donations HashMap
 
-        project.current_amount = potential_new_amount;
+        let total_donations_for_project: NearToken = self.donations.get(&project_id)
+            .map_or(0, |donations| donations.iter().map(|donation| donation.amount).sum());
+
+        assert!(total_donations_for_project + donation_amount <= project.target_amount, "Donation exceeds target amount");
 
         let donation = Donation {
             donor_id,
             amount: donation_amount,
             donation_time: env::block_timestamp(),
         };
-        self.donations.entry(project_id).or_insert_with(Vec::new).push(donation);
+        self.donations.entry(project_id.to_string()).or_insert_with(Vec::new).push(donation);
     }
 
     pub fn claim_funds(&mut self, project_id: String) {
-        let project = self.projects.get_mut(&project_id).expect("Project not found");
+        let project = self.projects.get(&project_id).expect("Project not found");
         assert!(!project.funds_claimed, "Funds have already been claimed");
         assert!(env::block_timestamp() > project.end_date, "Project has not ended yet");
 
-        let amount_to_transfer = project.current_amount;
-        project.current_amount = 0;
+        // Calculate total donations for the project to transfer
+        let total_donations_for_project: NearToken = self.donations.get(&project_id)
+            .map_or(0, |donations| donations.iter().map(|donation| donation.amount).sum());
+
         project.funds_claimed = true;
 
-        Promise::new(project.creator_id.clone()).transfer(amount_to_transfer);
+        Promise::new(project.creator_id.clone()).transfer(total_donations_for_project);
     }
 
     // Additional functions like getters can be added below
