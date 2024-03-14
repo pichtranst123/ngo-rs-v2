@@ -3,6 +3,7 @@ use near_sdk::{env, near_bindgen, AccountId, Timestamp, PanicOnDefault, Promise}
 use near_sdk::json_types::U128;
 use near_sdk::serde::{Deserialize, Serialize};
 use std::collections::HashMap;
+use near_token::NearToken;
 
 const ONE_HOUR_IN_NANOSECONDS: Timestamp = 60 * 60 * 1_000_000_000;
 const ONE_DAY_IN_NANOSECONDS: Timestamp = 24 * ONE_HOUR_IN_NANOSECONDS;
