@@ -21,7 +21,7 @@ near-sdk = "5.0.0"
 near-crypto = "0.21.1"
 borsh = "0.9.1"
 serde_json = "1.0"
-
+near-token = "0.2.0"
 [dependencies.getrandom]
 version = "0.2.12"
 features = ["js"]
