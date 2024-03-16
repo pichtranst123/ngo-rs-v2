@@ -1,24 +1,27 @@
-error[E0599]: no function or associated item named `from_yocto` found for struct `NearToken` in the current scope
-  --> src/lib.rs:77:43
+pich@pich-VirtualBox:~/contract/ngo-rs$ cargo build --target wasm32-unknown-unknown --release
+   Compiling ngo-rs v0.1.0 (/home/pich/contract/ngo-rs)
+error[E0308]: mismatched types
+  --> src/lib.rs:76:58
    |
-77 |         let attached_deposit = NearToken::from_yocto(env::attached_deposit());
-   |                                           ^^^^^^^^^^
-   |                                           |
-   |                                           function or associated item not found in `NearToken`
-   |                                           help: there is an associated function with a similar name: `from_yoctonear`
+76 |         let attached_deposit = NearToken::from_yoctonear(env::attached_deposit());
+   |                                ------------------------- ^^^^^^^^^^^^^^^^^^^^^^^ expected `u128`, found `NearToken`
+   |                                |
+   |                                arguments to this function are incorrect
+   |
+note: associated function defined here
+  --> /home/pich/.cargo/registry/src/index.crates.io-6f17d22bba15001f/near-token-0.2.0/src/lib.rs:58:18
+   |
+58 |     pub const fn from_yoctonear(inner: u128) -> Self {
+   |                  ^^^^^^^^^^^^^^
 
-error[E0599]: no function or associated item named `from_yocto` found for struct `NearToken` in the current scope
-   --> src/lib.rs:125:28
+error[E0369]: cannot add `NearToken` to `NearToken`
+   --> src/lib.rs:110:41
     |
-125 |         .map_or(NearToken::from_yocto(0), |donations| donations.iter().map(|donation| donation.amount).sum())
-    |                            ^^^^^^^^^^
-    |                            |
-    |                            function or associated item not found in `NearToken`
-    |                            help: there is an associated function with a similar name: `from_yoctonear`
+110 |             .reduce(|acc, donation| acc + donation)
+    |                                     --- ^ -------- NearToken
+    |                                     |
+    |                                     NearToken
 
-error[E0277]: a value of type `NearToken` cannot be made by summing an iterator over elements of type `NearToken`
-    --> src/lib.rs:125:104
-     |
-125  |         .map_or(NearToken::from_yocto(0), |donations| donations.iter().map(|donation| donation.amount).sum())
-     |                                                                                                        ^^^ value of type `NearToken` cannot be made by summing a `std::iter::Iterator<Item=NearToken>`
-     |
+Some errors have detailed explanations: E0308, E0369.
+For more information about an error, try `rustc --explain E0308`.
+error: could not compile `ngo-rs` (lib) due to 2 previous errors
