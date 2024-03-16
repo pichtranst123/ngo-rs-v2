@@ -114,10 +114,6 @@ impl DonationProject {
         self.projects.get_mut(&project_id).unwrap().funds_claimed = true;
     }
     
-fn get_total_donations_for_project(&self, project_id: &String) -> NearToken {
-    self.donations.get(project_id)
-        .map_or(NearToken::from_yocto(0), |donations| donations.iter().map(|donation| donation.amount).sum())
-}
 
     pub fn get_projects(&self) -> Vec<(String, ProjectMetadata)> {
         self.projects.iter().map(|(id, project)| (id.clone(), project.clone())).collect()
