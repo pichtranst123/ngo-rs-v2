@@ -93,30 +93,27 @@ impl DonationProject {
         self.donations.entry(project_id).or_insert_with(Vec::new).push(donation);
     }
 
-    pub fn claim_funds(&mut self, project_id: String) {
-        let project = self.projects.get_mut(&project_id).expect("Project not found");
-
-        if project.funds_claimed {
-            env::panic_str("Funds have already been claimed for this project");
-        }
+         pub fn claim_funds(&mut self, project_id: String) {
+        let project = self.projects.get(&project_id).expect("Project not found");
 
         if env::block_timestamp() <= project.end_date {
             env::panic_str("Project has not ended yet");
         }
 
-        project.funds_claimed = true;
+        if project.funds_claimed {
+            env::panic_str("Funds have already been claimed");
+        }
 
-        let total_donations = self.donations.get(&project_id).map_or(NearToken::from_yoctonear(0), |donations| {
-            let mut total = NearToken::from_yoctonear(0);
-            for donation in donations {
-                total = total + donation.amount;
-            }
-            total
-        });
+        let total_donations = self.donations.remove(&project_id).unwrap_or_default()
+            .into_iter()
+            .map(|donation| donation.amount)
+            .reduce(|acc, donation| acc + donation)
+            .unwrap_or(NearToken::from_yoctonear(0));
 
         Promise::new(project.creator_id.clone()).transfer(total_donations.into());
+        self.projects.get_mut(&project_id).unwrap().funds_claimed = true;
     }
-
+    
 fn get_total_donations_for_project(&self, project_id: &String) -> NearToken {
     self.donations.get(project_id)
         .map_or(NearToken::from_yocto(0), |donations| donations.iter().map(|donation| donation.amount).sum())
