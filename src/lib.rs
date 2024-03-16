@@ -71,54 +71,51 @@ impl DonationProject {
         self.projects.insert(project_name.clone(), project_metadata);
     }
 
-    #[payable]
+ #[payable]
     pub fn create_donation(&mut self, project_id: String, donate_amount: NearToken) {
+        let attached_deposit = NearToken::from_yoctonear(env::attached_deposit());
+        if donate_amount != attached_deposit {
+            env::panic_str("Attached deposit must match the specified donation amount");
+        }
+
         let donor_id = env::signer_account_id();
-        let attached_deposit = NearToken::from_yocto(env::attached_deposit());
-            if donate_amount != attached_deposit {
-                env::panic_str("Attached deposit must match the specified donation amount");
-            }
-        let project_exists = self.projects.contains_key(&project_id);
-            if !project_exists {
-                env::panic_str("Project not found");
-            }
-    
-    
+
+        if !self.projects.contains_key(&project_id) {
+            env::panic_str("Project not found");
+        }
+
         let donation = Donation {
             donor_id,
-            amount: donate_amount, // Use the provided donate_amount directly
+            amount: donate_amount,
             donation_time: env::block_timestamp(),
         };
+
         self.donations.entry(project_id).or_insert_with(Vec::new).push(donation);
     }
 
-  pub fn claim_funds(&mut self, project_id: String) {
-    // Ensure only the project creator can claim funds
-    let project = self.projects.get_mut(&project_id).expect("Project not found");
-    let signer = env::signer_account_id();
-    if project.creator_id != signer {
-        env::panic_str("Only the project creator can claim the funds");
+    pub fn claim_funds(&mut self, project_id: String) {
+        let project = self.projects.get_mut(&project_id).expect("Project not found");
+
+        if project.funds_claimed {
+            env::panic_str("Funds have already been claimed for this project");
+        }
+
+        if env::block_timestamp() <= project.end_date {
+            env::panic_str("Project has not ended yet");
+        }
+
+        project.funds_claimed = true;
+
+        let total_donations = self.donations.get(&project_id).map_or(NearToken::from_yoctonear(0), |donations| {
+            let mut total = NearToken::from_yoctonear(0);
+            for donation in donations {
+                total = total + donation.amount;
+            }
+            total
+        });
+
+        Promise::new(project.creator_id.clone()).transfer(total_donations.into());
     }
-
-    // Check if the project has ended
-    if env::block_timestamp() <= project.end_date {
-        env::panic_str("Project has not ended yet");
-    }
-
-    // Check if funds have already been claimed
-    if project.funds_claimed {
-        env::panic_str("Funds have already been claimed");
-    }
-
-    // Calculate the total donations for the project
-    let total_donations = self.get_total_donations_for_project(&project_id);
-
-    // Mark funds as claimed to prevent multiple claims
-    project.funds_claimed = true;
-
-    // Transfer the total donated amount to the project creator
-    Promise::new(project.creator_id.clone()).transfer(total_donations.into());
-}
 
 fn get_total_donations_for_project(&self, project_id: &String) -> NearToken {
     self.donations.get(project_id)
