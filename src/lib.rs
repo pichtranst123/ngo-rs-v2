@@ -71,10 +71,10 @@ impl DonationProject {
         self.projects.insert(project_name.clone(), project_metadata);
     }
 
- #[payable]
+     #[payable]
     pub fn create_donation(&mut self, project_id: String, donate_amount: NearToken) {
-        let attached_deposit = NearToken::from_yoctonear(env::attached_deposit());
-        if donate_amount != attached_deposit {
+        let attached_deposit = env::attached_deposit(); // Directly use u128 value
+        if donate_amount.amount != attached_deposit { // Compare u128 values
             env::panic_str("Attached deposit must match the specified donation amount");
         }
 
@@ -93,7 +93,7 @@ impl DonationProject {
         self.donations.entry(project_id).or_insert_with(Vec::new).push(donation);
     }
 
-         pub fn claim_funds(&mut self, project_id: String) {
+    pub fn claim_funds(&mut self, project_id: String) {
         let project = self.projects.get(&project_id).expect("Project not found");
 
         if env::block_timestamp() <= project.end_date {
@@ -106,14 +106,12 @@ impl DonationProject {
 
         let total_donations = self.donations.remove(&project_id).unwrap_or_default()
             .into_iter()
-            .map(|donation| donation.amount)
-            .reduce(|acc, donation| acc + donation)
-            .unwrap_or(NearToken::from_yoctonear(0));
+            .map(|donation| donation.amount.amount) // Access the inner u128 value for addition
+            .sum::<u128>(); // Use sum for u128 values
 
-        Promise::new(project.creator_id.clone()).transfer(total_donations.into());
+        Promise::new(project.creator_id.clone()).transfer(total_donations); // Transfer the summed u128 value
         self.projects.get_mut(&project_id).unwrap().funds_claimed = true;
     }
-    
 
     pub fn get_projects(&self) -> Vec<(String, ProjectMetadata)> {
         self.projects.iter().map(|(id, project)| (id.clone(), project.clone())).collect()
