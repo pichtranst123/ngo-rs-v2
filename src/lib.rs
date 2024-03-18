@@ -76,36 +76,29 @@ impl DonationContract {
 
 #[payable]
 pub fn create_donate(&mut self, project_id: String) {
-        let donor_id = env::signer_account_id();
-        let attached_deposit = env::attached_deposit();
-        assert!(attached_deposit > 0, "Donation must be greater than 0");
+    let donor_id = env::signer_account_id();
+    let attached_deposit = env::attached_deposit();
+    assert!(attached_deposit > 0, "Donation must be greater than 0");
 
-        let donation = Donation {
-            donor_id,
-            amount: attached_deposit,
-            donation_time: env::block_timestamp(),
-        };
+    // Ensure the project exists
+    let project = self.projects.get(&project_id).expect("Project not found");
 
-        let mut donations = self.donations.get(&project_id).unwrap_or_else(Vec::new);
-        donations.push(donation);
-        self.donations.insert(&project_id, &donations);
-    }
+    // Create a new donation record
+    let donation = Donation {
+        donor_id,
+        amount: attached_deposit,
+        donation_time: env::block_timestamp(),
+    };
 
-pub fn claim_funds(&mut self, project_id: String) -> Promise {
-    let account_id = env::signer_account_id();
-    let project = self.projects.get_mut(&project_id).expect("Project not found");
+    // Update the donations mapping with the new donation
+    let mut donations = self.donations.get(&project_id).unwrap_or_else(Vec::new);
+    donations.push(donation);
+    self.donations.insert(&project_id, &donations);
 
-    assert_eq!(account_id, project.creator_id, "Only the project creator can claim funds");
-    assert!(env::block_timestamp() > project.end_date, "Project is still active");
-    assert!(!project.funds_claimed, "Funds have already been claimed");
-    assert!(project.collected_amount >= project.target_amount, "Target amount not reached");
-
-    project.funds_claimed = true;
-
-    // Transfer collected_amount as is, since it's a u128 value and compatible with transfer method
-    Promise::new(project.creator_id.clone()).transfer(project.collected_amount)
+    // Transfer the attached deposit (donation) to the project creator
+    Promise::new(project.creator_id).transfer(attached_deposit)
 }
-    
+
     pub fn get_projects(&self) -> Vec<(String, Project)> {
         self.projects.iter().map(|(id, project)| (id.clone(), project.clone())).collect()
     }
