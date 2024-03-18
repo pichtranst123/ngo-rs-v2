@@ -61,7 +61,7 @@ impl DonationContract {
 
         let project_metadata = Project {
             creator_id,
-            project_name: project_name.clone(),
+            project_name,
             project_description,
             target_amount,
             ipfs_image,
