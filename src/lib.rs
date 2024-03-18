@@ -76,25 +76,20 @@ impl DonationContract {
 
 #[payable]
 pub fn create_donate(&mut self, project_id: String) {
-    let donor_id = env::signer_account_id();
-    let attached_deposit = env::attached_deposit(); // This is already a u128 value
+        let donor_id = env::signer_account_id();
+        let attached_deposit = env::attached_deposit();
+        assert!(attached_deposit > 0, "Donation must be greater than 0");
 
-    assert!(attached_deposit > 0, "Donation must be greater than 0");
+        let donation = Donation {
+            donor_id,
+            amount: attached_deposit,
+            donation_time: env::block_timestamp(),
+        };
 
-    let project = self.projects.get_mut(&project_id).expect("Project not found");
-    assert!(env::block_timestamp() < project.end_date, "Project has ended");
-
-    // Update the collected amount directly with attached_deposit
-    project.collected_amount += attached_deposit;
-
-    let donation = Donation {
-        donor_id,
-        amount: attached_deposit, // Use attached_deposit directly as it's already a u128
-        donation_time: env::block_timestamp(),
-    };
-
-    self.donations.entry(project_id).or_insert_with(Vec::new).push(donation);
-}
+        let mut donations = self.donations.get(&project_id).unwrap_or_else(Vec::new);
+        donations.push(donation);
+        self.donations.insert(&project_id, &donations);
+    }
 
 pub fn claim_funds(&mut self, project_id: String) -> Promise {
     let account_id = env::signer_account_id();
