@@ -16,6 +16,7 @@ pub struct DonationContract {
     projects: HashMap<String, Project>,
     donations: HashMap<String, Vec<Donation>>,
 }
+
 #[derive(BorshSerialize, BorshDeserialize, Serialize, Deserialize, Clone)]
 pub struct Project {
     creator_id: AccountId,
@@ -70,7 +71,7 @@ impl DonationContract {
             end_date,
             funds_claimed: false,
         };
-        self.projects.insert(project_name.clone(), project_metadata);
+        self.projects.insert(project_name, project_metadata);
     }
 
     #[payable]
@@ -79,13 +80,10 @@ impl DonationContract {
         let attached_deposit = env::attached_deposit();
         assert!(attached_deposit > 0, "Donation must be greater than 0");
 
-        let mut project = self.projects.get(&project_id).expect("Project not found");
+        let project = self.projects.get_mut(&project_id).expect("Project not found");
         assert!(env::block_timestamp() < project.end_date, "Project has ended");
 
-        let new_collected_amount = project.target_amount.0 + attached_deposit;
-        project.target_amount = new_collected_amount;
-
-        self.projects.insert(&project_id, &project);
+        project.collected_amount += attached_deposit;
 
         let donation = Donation {
             donor_id,
@@ -97,19 +95,18 @@ impl DonationContract {
 
     pub fn claim_funds(&mut self, project_id: String) -> Promise {
         let account_id = env::signer_account_id();
-        let mut project = self.projects.get(&project_id).expect("Project not found");
+        let project = self.projects.get_mut(&project_id).expect("Project not found");
 
         assert_eq!(account_id, project.creator_id, "Only the project creator can claim funds");
         assert!(env::block_timestamp() > project.end_date, "Project is still active");
         assert!(!project.funds_claimed, "Funds have already been claimed");
-        assert!(project.target_amount.0 >= project.target_amount.0, "Target amount not reached");
+        assert!(project.collected_amount >= project.target_amount, "Target amount not reached");
 
         project.funds_claimed = true;
-        self.projects.insert(&project_id, &project);
 
-        Promise::new(project.creator_id.clone()).transfer(project.target_amount.0)
+        Promise::new(project.creator_id.clone()).transfer(project.collected_amount)
     }
-
+    
     pub fn get_projects(&self) -> Vec<(String, Project)> {
         self.projects.iter().map(|(id, project)| (id.clone(), project.clone())).collect()
     }
