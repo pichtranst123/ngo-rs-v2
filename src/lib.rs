@@ -1,8 +1,9 @@
 use near_sdk::borsh::{self, BorshDeserialize, BorshSerialize};
-use near_sdk::{env, near_bindgen, AccountId, PanicOnDefault, Promise, PromiseOrValue,Timestamp};
+use std::collections::HashMap;
+use near_sdk::{env, near_bindgen, AccountId, PanicOnDefault,Timestamp};
 use near_sdk::json_types::U128;
 use near_sdk::serde::{Deserialize, Serialize};
-use std::collections::HashMap
+
 const ONE_YOCTO: u128 = 1;
 
 const ONE_HOUR_IN_NANOSECONDS: Timestamp = 60 * 60 * 1_000_000_000;
@@ -16,13 +17,13 @@ pub struct DonationContract {
     projects: HashMap<String, Project>,
     donations: HashMap<String, Vec<Donation>>,
 }
-
+#[derive(BorshSerialize, BorshDeserialize, Serialize, Deserialize, Clone)]
 pub struct Project {
     creator_id: AccountId,
     project_name: String,
     project_description: String,
-    target_amount: U128,
-    collected_amount: U128, // Added to track the amount of donations collected
+    target_amount: u128,
+    collected_amount: u128, 
     ipfs_image: String,
     ipfs_hash: Vec<String>,
     start_date: Timestamp,
@@ -33,7 +34,7 @@ pub struct Project {
 #[derive(BorshSerialize, BorshDeserialize, Serialize, Deserialize, Clone)]
 pub struct Donation {
     donor_id: AccountId,
-    amount: U128,
+    amount: u128,
     donation_time: Timestamp,
 }
 
@@ -73,7 +74,7 @@ impl DonationContract {
     }
 
     #[payable]
-    pub fn donate(&mut self, project_id: String) {
+    pub fn create_donate(&mut self, project_id: String) {
         let donor_id = env::signer_account_id();
         let attached_deposit = env::attached_deposit();
         assert!(attached_deposit > 0, "Donation must be greater than 0");
@@ -88,7 +89,7 @@ impl DonationContract {
 
         let donation = Donation {
             donor_id,
-            amount: U128(attached_deposit),
+            amount: U128 as u128(attached_deposit),
             donation_time: env::block_timestamp(),
         };
         self.donations.entry(project_id).or_insert_with(Vec::new).push(donation);
@@ -108,7 +109,8 @@ impl DonationContract {
 
         Promise::new(project.creator_id.clone()).transfer(project.target_amount.0)
     }
-    pub fn get_projects(&self) -> Vec<(String, ProjectMetadata)> {
+
+    pub fn get_projects(&self) -> Vec<(String, Project)> {
         self.projects.iter().map(|(id, project)| (id.clone(), project.clone())).collect()
     }
 
@@ -121,7 +123,6 @@ impl DonationContract {
             donations.iter().find(|donation| donation.donor_id == donor_id).map(|donation| (project_id.clone(), donation.clone()))
         }).collect()
     }
-
     pub fn get_projects_claimed(&self) -> Vec<String> {
         self.projects.iter()
             .filter_map(|(project_id, project)| {
@@ -145,5 +146,4 @@ impl DonationContract {
             })
             .collect()
     }
-
 }
