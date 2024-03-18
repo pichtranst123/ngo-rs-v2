@@ -4,6 +4,7 @@ use near_sdk::{env, near_bindgen, AccountId, PanicOnDefault, Promise, Timestamp}
 use near_sdk::serde::{Deserialize, Serialize};
 use near_token::NearToken;
 const ONE_YOCTO: u128 = 1;
+use std::string::String;
 
 const ONE_HOUR_IN_NANOSECONDS: Timestamp = 60 * 60 * 1_000_000_000;
 const ONE_DAY_IN_NANOSECONDS: Timestamp = 24 * ONE_HOUR_IN_NANOSECONDS;
@@ -60,7 +61,7 @@ impl DonationContract {
 
         let project_metadata = Project {
             creator_id,
-            project_name,
+            project_name: project_name.clone(),
             project_description,
             target_amount,
             ipfs_image,
@@ -74,26 +75,23 @@ impl DonationContract {
 
     #[payable]
     pub fn create_donate(&mut self, project_id: String) {
-        let donor_id = env::signer_account_id();
-        let attached_deposit = env::attached_deposit();
-    
-        // Ensure the project exists
+          // Ensure the project exists
         let project = self.projects.get(&project_id).expect("Project not found");
-    
+        let attached_deposit= env::attached_deposit();
         // Create a new donation record
         let donation = Donation {
-            donor_id,
-            amount: attached_deposit,
+            donor_id: env::signer_account_id(),
+            amount: env::attached_deposit(),
             donation_time: env::block_timestamp(),
         };
     
         // Update the donations mapping with the new donation
-        let mut donations = self.donations.get(&project_id).unwrap_or_else(Vec::new);
+        let mut donations = self.donations.get(&project_id).cloned().unwrap_or_default();
         donations.push(donation);
-        self.donations.insert(&project_id, &donations);
+        self.donations.insert(project_id.clone(), donations);
     
         // Transfer the attached deposit (donation) to the project creator
-        Promise::new(project.creator_id).transfer(attached_deposit)
+        Promise::new(project.creator_id).transfer(attached_deposit);
     }
     pub fn get_projects(&self) -> Vec<(String, Project)> {
         self.projects.iter().map(|(id, project)| (id.clone(), project.clone())).collect()
