@@ -75,32 +75,30 @@ impl DonationContract {
         self.projects.insert(project_id, project_metadata);
     }
 
-#[payable]
-pub fn create_donate(&mut self, project_id: String, amount: String) {
-    let attached_deposit = env::attached_deposit();
+    #[payable]
+    pub fn create_donate(&mut self, project_id: String, amount: String) {
+        let attached_deposit = env::attached_deposit();
+        
+        // Parse the amount string into NearToken, adjust this part according to your NearToken implementation
+        let donation_amount = NearToken::from_str(&amount).expect("Invalid amount format");
     
-    // Assuming NearToken can be constructed from a string or u128
-    // And assuming NearToken implements FromStr or similar
-    // This part may need to be adjusted based on the actual implementation of NearToken
-    let specified_amount = amount.parse::<NearToken>().expect("Invalid amount format");
+        assert_eq!(attached_deposit, donation_amount.into(), "Attached deposit must match the specified amount");
     
-    assert_eq!(attached_deposit, specified_amount.into(), "Attached deposit must match the specified amount");
-
-    let project = self.projects.get(&project_id).expect("Project not found");
+        let project = self.projects.get(&project_id).expect("Project not found");
+        
+        let donation = Donation {
+            donor_id: env::signer_account_id(),
+            amount: donation_amount,
+            donation_time: env::block_timestamp(),
+        };
     
-    let donation = Donation {
-        donor_id: env::signer_account_id(),
-        amount: specified_amount, // Using the parsed NearToken
-        donation_time: env::block_timestamp(),
-    };
-
-    let mut donations = self.donations.get(&project_id).cloned().unwrap_or_default();
-    donations.push(donation);
-    self.donations.insert(project_id.clone(), donations);
-
-    Promise::new(project.creator_id.clone()).transfer(attached_deposit);
-}
-
+        let mut donations = self.donations.get(&project_id).cloned().unwrap_or_default();
+        donations.push(donation);
+        self.donations.insert(project_id.clone(), donations);
+    
+        // Transfer the attached deposit (donation) to the project creator
+        Promise::new(project.creator_id.clone()).transfer(attached_deposit);
+    }
     
     
     
