@@ -25,3 +25,14 @@
         // Transfer the attached deposit (donation) to the project creator
         Promise::new(project.creator_id.clone()).transfer(attached_deposit);
     }
+
+
+
+rror[E0599]: no function or associated item named `new` found for struct `NearToken` in the current scope
+  --> src/lib.rs:92:42
+   |
+92 |         let donation_amount = NearToken::new(donation_amount_u128);
+   |                                          ^^^ function or associated item not found in `NearToken`
+
+For more information about this error, try `rustc --explain E0599`.
+warning: `ngo-rs` (lib) generated 1 warning
