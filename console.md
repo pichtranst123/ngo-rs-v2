@@ -1,33 +1,22 @@
-error[E0308]: mismatched types
-  --> src/lib.rs:81:36
+warning: unused import: `near_token::NearToken`
+ --> src/lib.rs:5:5
+  |
+5 | use near_token::NearToken;
+  |     ^^^^^^^^^^^^^^^^^^^^^
+  |
+  = note: `#[warn(unused_imports)]` on by default
+
+error[E0599]: no method named `value` found for struct `NearToken` in the current scope
+  --> src/lib.rs:81:42
    |
-81 |         assert!(attached_deposit > 0, "Donation must be greater than 0");
-   |                 ----------------   ^ expected `NearToken`, found integer
-   |                 |
-   |                 expected because this is `NearToken`
+81 |     let deposit_value = attached_deposit.value(); // Convert NearToken to u128
+   |                                          ^^^^^ method not found in `NearToken`
 
 error[E0308]: mismatched types
-  --> src/lib.rs:90:21
-   |
-90 |             amount: attached_deposit,
-   |                     ^^^^^^^^^^^^^^^^ expected `u128`, found `NearToken`
-
-error[E0277]: cannot add-assign `NearToken` to `u128`
-  --> src/lib.rs:86:34
-   |
-86 |         project.collected_amount += attached_deposit;
-   |                                  ^^ no implementation for `u128 += NearToken`
-   |
-   = help: the trait `AddAssign<NearToken>` is not implemented for `u128`
-   = help: the following other types implement trait `AddAssign<Rhs>`:
-             <u128 as AddAssign>
-             <u128 as AddAssign<&u128>>
-
-error[E0308]: mismatched types
-   --> src/lib.rs:107:59
+   --> src/lib.rs:108:55
     |
-107 |         Promise::new(project.creator_id.clone()).transfer(project.collected_amount)
-    |                                                  -------- ^^^^^^^^^^^^^^^^^^^^^^^^ expected `NearToken`, found `u128`
-    |                                                  |
-    |                                                  arguments to this method are incorrect
+108 |     Promise::new(project.creator_id.clone()).transfer(project.collected_amount) // Assuming collected_amount is u128
+    |                                              -------- ^^^^^^^^^^^^^^^^^^^^^^^^ expected `NearToken`, found `u128`
+    |                                              |
+    |                                              arguments to this method are incorrect
     |
