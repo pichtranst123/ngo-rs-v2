@@ -77,20 +77,22 @@ impl DonationContract {
 #[payable]
 pub fn create_donate(&mut self, project_id: String) {
     let donor_id = env::signer_account_id();
-    let attached_deposit = env::attached_deposit();
-    let deposit_value = attached_deposit.value(); // Convert NearToken to u128
-    assert!(deposit_value > 0, "Donation must be greater than 0");
+    let attached_deposit = env::attached_deposit(); // This is already a u128 value
+
+    assert!(attached_deposit > 0, "Donation must be greater than 0");
 
     let project = self.projects.get_mut(&project_id).expect("Project not found");
     assert!(env::block_timestamp() < project.end_date, "Project has ended");
 
-    project.collected_amount += deposit_value; // Assuming collected_amount is u128
+    // Update the collected amount directly with attached_deposit
+    project.collected_amount += attached_deposit;
 
     let donation = Donation {
         donor_id,
-        amount: deposit_value, // Assuming amount should be u128
+        amount: attached_deposit, // Use attached_deposit directly as it's already a u128
         donation_time: env::block_timestamp(),
     };
+
     self.donations.entry(project_id).or_insert_with(Vec::new).push(donation);
 }
 
@@ -105,7 +107,8 @@ pub fn claim_funds(&mut self, project_id: String) -> Promise {
 
     project.funds_claimed = true;
 
-    Promise::new(project.creator_id.clone()).transfer(project.collected_amount) // Assuming collected_amount is u128
+    // Transfer collected_amount as is, since it's a u128 value and compatible with transfer method
+    Promise::new(project.creator_id.clone()).transfer(project.collected_amount)
 }
     
     pub fn get_projects(&self) -> Vec<(String, Project)> {
