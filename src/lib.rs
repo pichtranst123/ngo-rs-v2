@@ -1,11 +1,8 @@
 use near_sdk::borsh::{self, BorshDeserialize, BorshSerialize};
-use near_sdk::collections::{LookupMap, UnorderedMap};
 use near_sdk::{env, near_bindgen, AccountId, PanicOnDefault, Promise, PromiseOrValue,Timestamp};
 use near_sdk::json_types::U128;
 use near_sdk::serde::{Deserialize, Serialize};
-use near_sdk::Gas;
-
-const BASE_GAS: Gas = 25_000_000_000_000;
+use std::collections::HashMap
 const ONE_YOCTO: u128 = 1;
 
 const ONE_HOUR_IN_NANOSECONDS: Timestamp = 60 * 60 * 1_000_000_000;
@@ -16,16 +13,16 @@ const THIRTY_DAYS_IN_NANOSECONDS: Timestamp = 30 * ONE_DAY_IN_NANOSECONDS;
 #[near_bindgen]
 #[derive(BorshDeserialize, BorshSerialize, PanicOnDefault)]
 pub struct DonationContract {
-    projects: LookupMap<String, Project>,
-    donations: UnorderedMap<String, Vec<Donation>>,
+    projects: HashMap<String, Project>,
+    donations: HashMap<String, Vec<Donation>>,
 }
 
-#[derive(BorshSerialize, BorshDeserialize, Serialize, Deserialize, Clone)]
 pub struct Project {
     creator_id: AccountId,
     project_name: String,
     project_description: String,
-    target_amount: NearToken,
+    target_amount: U128,
+    collected_amount: U128, // Added to track the amount of donations collected
     ipfs_image: String,
     ipfs_hash: Vec<String>,
     start_date: Timestamp,
@@ -36,7 +33,7 @@ pub struct Project {
 #[derive(BorshSerialize, BorshDeserialize, Serialize, Deserialize, Clone)]
 pub struct Donation {
     donor_id: AccountId,
-    amount: NearToken,
+    amount: U128,
     donation_time: Timestamp,
 }
 
@@ -45,8 +42,8 @@ impl DonationContract {
     #[init]
     pub fn new() -> Self {
         Self {
-            projects: LookupMap::new(b"p"),
-            donations: UnorderedMap::new(b"d"),
+            projects: HashMap::new(b"p"),
+            donations: HashMap::new(b"d"),
         }
     }
 
@@ -124,7 +121,8 @@ impl DonationContract {
             donations.iter().find(|donation| donation.donor_id == donor_id).map(|donation| (project_id.clone(), donation.clone()))
         }).collect()
     }
-     pub fn get_projects_claimed(&self) -> Vec<String> {
+
+    pub fn get_projects_claimed(&self) -> Vec<String> {
         self.projects.iter()
             .filter_map(|(project_id, project)| {
                 if project.funds_claimed {
@@ -135,10 +133,11 @@ impl DonationContract {
             })
             .collect()
     }
-      pub fn get_projects_not_claimed(&self) -> Vec<String> {
+    
+    pub fn get_projects_not_claimed(&self) -> Vec<String> {
         self.projects.iter()
             .filter_map(|(project_id, project)| {
-                if !project.funds_claimed && env::block_timestamp() > project.end_date && project.target_amount.0 <= project.target_amount.0 {
+                if !project.funds_claimed && env::block_timestamp() > project.end_date && project.collected_amount >= project.target_amount {
                     Some(project_id)
                 } else {
                     None
@@ -146,4 +145,5 @@ impl DonationContract {
             })
             .collect()
     }
+
 }
