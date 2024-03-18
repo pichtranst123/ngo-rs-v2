@@ -75,32 +75,29 @@ impl DonationContract {
         self.projects.insert(project_id, project_metadata);
     }
 
-  #[payable]
-pub fn create_donate(&mut self, project_id: String, amount: u128) {
-    // Ensure the attached deposit matches the specified amount
+#[payable]
+pub fn create_donate(&mut self, project_id: String, amount: String) {
     let attached_deposit = env::attached_deposit();
-    assert_eq!(attached_deposit, amount, "Attached deposit must match the specified amount");
+    
+    // Assuming NearToken can be constructed from a string or u128
+    // And assuming NearToken implements FromStr or similar
+    // This part may need to be adjusted based on the actual implementation of NearToken
+    let specified_amount = amount.parse::<NearToken>().expect("Invalid amount format");
+    
+    assert_eq!(attached_deposit, specified_amount.into(), "Attached deposit must match the specified amount");
 
-    // Retrieve the project, ensuring it exists
     let project = self.projects.get(&project_id).expect("Project not found");
-
-    // Create a new donation record with the specified amount
+    
     let donation = Donation {
         donor_id: env::signer_account_id(),
-        amount: attached_deposit, // Assuming NearToken can be directly assigned from u128
+        amount: specified_amount, // Using the parsed NearToken
         donation_time: env::block_timestamp(),
     };
 
-    // Retrieve the existing donations for the project, or initialize a new vector if none exist
     let mut donations = self.donations.get(&project_id).cloned().unwrap_or_default();
-
-    // Add the new donation to the vector of donations
     donations.push(donation);
-
-    // Update the donations mapping for the project
     self.donations.insert(project_id.clone(), donations);
 
-    // Transfer the attached deposit (donation) to the project creator
     Promise::new(project.creator_id.clone()).transfer(attached_deposit);
 }
 
