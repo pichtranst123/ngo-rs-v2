@@ -61,7 +61,7 @@ impl DonationContract {
 
         let project_metadata = Project {
             creator_id,
-            project_name,
+            project_name: project_name.clone(),
             project_description,
             target_amount,
             ipfs_image,
@@ -75,24 +75,24 @@ impl DonationContract {
 
     #[payable]
     pub fn create_donate(&mut self, project_id: String) {
-          // Ensure the project exists
         let project = self.projects.get(&project_id).expect("Project not found");
-        let attached_deposit= env::attached_deposit();
-        // Create a new donation record
+        let attached_deposit = env::attached_deposit();
+    
         let donation = Donation {
             donor_id: env::signer_account_id(),
-            amount: env::attached_deposit(),
+            amount: attached_deposit, // Ensure NearToken can be directly assigned from u128
             donation_time: env::block_timestamp(),
         };
     
-        // Update the donations mapping with the new donation
         let mut donations = self.donations.get(&project_id).cloned().unwrap_or_default();
         donations.push(donation);
-        self.donations.insert(project_id.clone(), donations);
+        self.donations.insert(project_id, donations);
     
-        // Transfer the attached deposit (donation) to the project creator
-        Promise::new(project.creator_id).transfer(attached_deposit);
+        Promise::new(project.creator_id.clone()).transfer(attached_deposit);
     }
+    
+    
+    
     pub fn get_projects(&self) -> Vec<(String, Project)> {
         self.projects.iter().map(|(id, project)| (id.clone(), project.clone())).collect()
     }
