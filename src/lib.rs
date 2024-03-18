@@ -1,5 +1,6 @@
 use near_sdk::borsh::{self, BorshDeserialize, BorshSerialize};
 use std::collections::HashMap;
+use std::fmt::format;
 use near_sdk::{env, near_bindgen, AccountId, PanicOnDefault, Promise, Timestamp};
 use near_sdk::serde::{Deserialize, Serialize};
 use near_token::NearToken;
@@ -59,6 +60,7 @@ impl DonationContract {
             _ => env::panic_str("Invalid duration."),
         };
 
+        let project_id = format!("{}_{}",creator_id,start_date);
         let project_metadata = Project {
             creator_id,
             project_name: project_name.clone(),
@@ -70,7 +72,7 @@ impl DonationContract {
             end_date,
             funds_claimed: false,
         };
-        self.projects.insert(project_name, project_metadata);
+        self.projects.insert(project_id, project_metadata);
     }
 
     #[payable]
