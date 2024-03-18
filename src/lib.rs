@@ -74,38 +74,39 @@ impl DonationContract {
         self.projects.insert(project_name, project_metadata);
     }
 
-    #[payable]
-    pub fn create_donate(&mut self, project_id: String) {
-        let donor_id = env::signer_account_id();
-        let attached_deposit = env::attached_deposit();
-        assert!(attached_deposit > 0, "Donation must be greater than 0");
+#[payable]
+pub fn create_donate(&mut self, project_id: String) {
+    let donor_id = env::signer_account_id();
+    let attached_deposit = env::attached_deposit();
+    let deposit_value = attached_deposit.value(); // Convert NearToken to u128
+    assert!(deposit_value > 0, "Donation must be greater than 0");
 
-        let project = self.projects.get_mut(&project_id).expect("Project not found");
-        assert!(env::block_timestamp() < project.end_date, "Project has ended");
+    let project = self.projects.get_mut(&project_id).expect("Project not found");
+    assert!(env::block_timestamp() < project.end_date, "Project has ended");
 
-        project.collected_amount += attached_deposit;
+    project.collected_amount += deposit_value; // Assuming collected_amount is u128
 
-        let donation = Donation {
-            donor_id,
-            amount: attached_deposit,
-            donation_time: env::block_timestamp(),
-        };
-        self.donations.entry(project_id).or_insert_with(Vec::new).push(donation);
-    }
+    let donation = Donation {
+        donor_id,
+        amount: deposit_value, // Assuming amount should be u128
+        donation_time: env::block_timestamp(),
+    };
+    self.donations.entry(project_id).or_insert_with(Vec::new).push(donation);
+}
 
-    pub fn claim_funds(&mut self, project_id: String) -> Promise {
-        let account_id = env::signer_account_id();
-        let project = self.projects.get_mut(&project_id).expect("Project not found");
+pub fn claim_funds(&mut self, project_id: String) -> Promise {
+    let account_id = env::signer_account_id();
+    let project = self.projects.get_mut(&project_id).expect("Project not found");
 
-        assert_eq!(account_id, project.creator_id, "Only the project creator can claim funds");
-        assert!(env::block_timestamp() > project.end_date, "Project is still active");
-        assert!(!project.funds_claimed, "Funds have already been claimed");
-        assert!(project.collected_amount >= project.target_amount, "Target amount not reached");
+    assert_eq!(account_id, project.creator_id, "Only the project creator can claim funds");
+    assert!(env::block_timestamp() > project.end_date, "Project is still active");
+    assert!(!project.funds_claimed, "Funds have already been claimed");
+    assert!(project.collected_amount >= project.target_amount, "Target amount not reached");
 
-        project.funds_claimed = true;
+    project.funds_claimed = true;
 
-        Promise::new(project.creator_id.clone()).transfer(project.collected_amount)
-    }
+    Promise::new(project.creator_id.clone()).transfer(project.collected_amount) // Assuming collected_amount is u128
+}
     
     pub fn get_projects(&self) -> Vec<(String, Project)> {
         self.projects.iter().map(|(id, project)| (id.clone(), project.clone())).collect()
