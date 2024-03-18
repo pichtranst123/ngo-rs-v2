@@ -75,23 +75,35 @@ impl DonationContract {
         self.projects.insert(project_id, project_metadata);
     }
 
-    #[payable]
-    pub fn create_donate(&mut self, project_id: String) {
-        let project = self.projects.get(&project_id).expect("Project not found");
-        let attached_deposit = env::attached_deposit();
-    
-        let donation = Donation {
-            donor_id: env::signer_account_id(),
-            amount: attached_deposit, // Ensure NearToken can be directly assigned from u128
-            donation_time: env::block_timestamp(),
-        };
-    
-        let mut donations = self.donations.get(&project_id).cloned().unwrap_or_default();
-        donations.push(donation);
-        self.donations.insert(project_id, donations);
-    
-        Promise::new(project.creator_id.clone()).transfer(attached_deposit);
-    }
+  #[payable]
+pub fn create_donate(&mut self, project_id: String, amount: u128) {
+    // Ensure the attached deposit matches the specified amount
+    let attached_deposit = env::attached_deposit();
+    assert_eq!(attached_deposit, amount, "Attached deposit must match the specified amount");
+
+    // Retrieve the project, ensuring it exists
+    let project = self.projects.get(&project_id).expect("Project not found");
+
+    // Create a new donation record with the specified amount
+    let donation = Donation {
+        donor_id: env::signer_account_id(),
+        amount: attached_deposit, // Assuming NearToken can be directly assigned from u128
+        donation_time: env::block_timestamp(),
+    };
+
+    // Retrieve the existing donations for the project, or initialize a new vector if none exist
+    let mut donations = self.donations.get(&project_id).cloned().unwrap_or_default();
+
+    // Add the new donation to the vector of donations
+    donations.push(donation);
+
+    // Update the donations mapping for the project
+    self.donations.insert(project_id.clone(), donations);
+
+    // Transfer the attached deposit (donation) to the project creator
+    Promise::new(project.creator_id.clone()).transfer(attached_deposit);
+}
+
     
     
     
