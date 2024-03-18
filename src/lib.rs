@@ -2,7 +2,7 @@ use near_sdk::borsh::{self, BorshDeserialize, BorshSerialize};
 use std::collections::HashMap;
 use near_sdk::{env, near_bindgen, AccountId, PanicOnDefault, Promise, Timestamp};
 use near_sdk::serde::{Deserialize, Serialize};
-
+use near_token::NearToken;
 const ONE_YOCTO: u128 = 1;
 
 const ONE_HOUR_IN_NANOSECONDS: Timestamp = 60 * 60 * 1_000_000_000;
