@@ -1,7 +1,6 @@
 use near_sdk::borsh::{self, BorshDeserialize, BorshSerialize};
 use std::collections::HashMap;
-use near_sdk::{env, near_bindgen, AccountId, PanicOnDefault,Timestamp};
-use near_sdk::json_types::U128;
+use near_sdk::{env, near_bindgen, AccountId, PanicOnDefault, Promise, Timestamp};
 use near_sdk::serde::{Deserialize, Serialize};
 
 const ONE_YOCTO: u128 = 1;
@@ -43,12 +42,12 @@ impl DonationContract {
     #[init]
     pub fn new() -> Self {
         Self {
-            projects: HashMap::new(b"p"),
-            donations: HashMap::new(b"d"),
+            projects: HashMap::new(),
+            donations: HashMap::new(),
         }
     }
 
-    pub fn create_project(&mut self, project_name: String, project_description: String, target_amount: NearToken, ipfs_image: String, ipfs_hash: Vec<String>, duration: u8) {
+    pub fn create_project(&mut self, project_name: String, project_description: String, target_amount: u128, ipfs_image: String, ipfs_hash: Vec<String>, duration: u8) {
         let creator_id = env::signer_account_id();
         let start_date = env::block_timestamp();
         let end_date = start_date + match duration {
@@ -64,6 +63,7 @@ impl DonationContract {
             project_name,
             project_description,
             target_amount,
+            collected_amount: 0,
             ipfs_image,
             ipfs_hash,
             start_date,
@@ -83,13 +83,13 @@ impl DonationContract {
         assert!(env::block_timestamp() < project.end_date, "Project has ended");
 
         let new_collected_amount = project.target_amount.0 + attached_deposit;
-        project.target_amount = U128(new_collected_amount);
+        project.target_amount = new_collected_amount;
 
         self.projects.insert(&project_id, &project);
 
         let donation = Donation {
             donor_id,
-            amount: U128 as u128(attached_deposit),
+            amount: attached_deposit,
             donation_time: env::block_timestamp(),
         };
         self.donations.entry(project_id).or_insert_with(Vec::new).push(donation);
@@ -122,28 +122,5 @@ impl DonationContract {
         self.donations.iter().filter_map(|(project_id, donations)| {
             donations.iter().find(|donation| donation.donor_id == donor_id).map(|donation| (project_id.clone(), donation.clone()))
         }).collect()
-    }
-    pub fn get_projects_claimed(&self) -> Vec<String> {
-        self.projects.iter()
-            .filter_map(|(project_id, project)| {
-                if project.funds_claimed {
-                    Some(project_id)
-                } else {
-                    None
-                }
-            })
-            .collect()
-    }
-    
-    pub fn get_projects_not_claimed(&self) -> Vec<String> {
-        self.projects.iter()
-            .filter_map(|(project_id, project)| {
-                if !project.funds_claimed && env::block_timestamp() > project.end_date && project.collected_amount >= project.target_amount {
-                    Some(project_id)
-                } else {
-                    None
-                }
-            })
-            .collect()
     }
 }
