@@ -23,7 +23,6 @@ pub struct Project {
     project_name: String,
     project_description: String,
     target_amount: u128,
-    collected_amount: u128, 
     ipfs_image: String,
     ipfs_hash: Vec<String>,
     start_date: Timestamp,
@@ -34,7 +33,7 @@ pub struct Project {
 #[derive(BorshSerialize, BorshDeserialize, Serialize, Deserialize, Clone)]
 pub struct Donation {
     donor_id: AccountId,
-    amount: u128,
+    amount: NearToken,
     donation_time: Timestamp,
 }
 
@@ -64,7 +63,6 @@ impl DonationContract {
             project_name,
             project_description,
             target_amount,
-            collected_amount: 0,
             ipfs_image,
             ipfs_hash,
             start_date,
@@ -74,31 +72,29 @@ impl DonationContract {
         self.projects.insert(project_name, project_metadata);
     }
 
-#[payable]
-pub fn create_donate(&mut self, project_id: String) {
-    let donor_id = env::signer_account_id();
-    let attached_deposit = env::attached_deposit();
-    assert!(attached_deposit > 0, "Donation must be greater than 0");
-
-    // Ensure the project exists
-    let project = self.projects.get(&project_id).expect("Project not found");
-
-    // Create a new donation record
-    let donation = Donation {
-        donor_id,
-        amount: attached_deposit,
-        donation_time: env::block_timestamp(),
-    };
-
-    // Update the donations mapping with the new donation
-    let mut donations = self.donations.get(&project_id).unwrap_or_else(Vec::new);
-    donations.push(donation);
-    self.donations.insert(&project_id, &donations);
-
-    // Transfer the attached deposit (donation) to the project creator
-    Promise::new(project.creator_id).transfer(attached_deposit)
-}
-
+    #[payable]
+    pub fn create_donate(&mut self, project_id: String) {
+        let donor_id = env::signer_account_id();
+        let attached_deposit = env::attached_deposit();
+    
+        // Ensure the project exists
+        let project = self.projects.get(&project_id).expect("Project not found");
+    
+        // Create a new donation record
+        let donation = Donation {
+            donor_id,
+            amount: attached_deposit,
+            donation_time: env::block_timestamp(),
+        };
+    
+        // Update the donations mapping with the new donation
+        let mut donations = self.donations.get(&project_id).unwrap_or_else(Vec::new);
+        donations.push(donation);
+        self.donations.insert(&project_id, &donations);
+    
+        // Transfer the attached deposit (donation) to the project creator
+        Promise::new(project.creator_id).transfer(attached_deposit)
+    }
     pub fn get_projects(&self) -> Vec<(String, Project)> {
         self.projects.iter().map(|(id, project)| (id.clone(), project.clone())).collect()
     }
